@@ -22,6 +22,7 @@
             <th class="p-2">Year</th>
             <th class="p-2">Winner</th>
             <th class="p-2">Team</th>
+            <th class="p-2">Record</th>
           </tr>
         </thead>
         <tbody id="champsTableBody" class="text-gray-100">
@@ -47,6 +48,7 @@
             <td class="p-2">${row.Year || ""}</td>
             <td class="p-2">${row.Winner || ""}</td>
             <td class="p-2">${row.Team || ""}</td>
+            <td class="p-2">${row.Record || ""}</td>
           `;
           tbody.appendChild(tr);
         });
