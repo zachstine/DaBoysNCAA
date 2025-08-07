@@ -16,7 +16,7 @@
         const target = document.getElementById("championsList");
         data.slice(-3).reverse().forEach(row => {
           const li = document.createElement("li");
-          li.textContent = `${row.Year} – ${row.Winner} (${row.Loser})`;
+          li.textContent = `${row.Year} – ${row.Winner} (${row.Record})`;
           target.appendChild(li);
         });
       });
