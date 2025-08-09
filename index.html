@@ -123,34 +123,55 @@
     </footer>
     <script>
       (function(){
-        const SHEET_ID = "1YelSwe2frFL_FvB3ul8bmZrWCYyULFCZqbfx6oO_Fr4"; // <-- set to this league's Sheet ID
-        const TAB = "UserInfo"; // your tab name
+        // Set this to the correct league’s Sheet ID
+        const SHEET_ID = "1YelSwe2frFL_FvB3ul8bmZrWCYyULFCZqbfx6oO_Fr4";
+        const TAB = "HTH";
         const listEl = document.getElementById("uvuList");
-    
         if (!listEl) return;
     
-        fetch(`https://opensheet.elk.sh/1rKNSb7t1_kLLpDn3lJEuXrzN3P1uMfAVqHQFG4hnGYM/UserInfo`)
+        const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    
+        fetch(`https://opensheet.elk.sh/1rKNSb7t1_kLLpDn3lJEuXrzN3P1uMfAVqHQFG4hnGYM/HTH`)
           .then(r => r.json())
           .then(rows => {
-            // Sort by Year (desc) if Year is numeric-like, then take latest 6
-            const sorted = rows.slice().sort((a,b) => (b.Year||"").localeCompare(a.Year||"")).slice(0,6);
-            if (sorted.length === 0) {
-              listEl.innerHTML = `<li class="text-gray-400">No matchups yet.</li>`;
+            if (!Array.isArray(rows) || rows.length === 0) {
+              listEl.innerHTML = `<li class="text-gray-400">No head-to-head data yet.</li>`;
               return;
             }
-            listEl.innerHTML = "";
-            sorted.forEach(r => {
-              const li = document.createElement("li");
-              li.textContent = `${r.Year} — ${r.Home} vs ${r.Away} • ${r.Winner} ${r.Score ? '('+r.Score+')' : ''}`;
-              listEl.appendChild(li);
-            });
+            // Detect headers flexibly
+            const nameKey   = ['Name','Coach','User'].find(k => k in rows[0]) || 'Name';
+            const vsKey     = ['All-time versus','All time versus','Opponent','Versus'].find(k => k in rows[0]) || 'Opponent';
+            const recordKey = ['Record'].find(k => k in rows[0]);
+    
+            // Normalize rows
+            const normalized = rows.map(r => {
+              const name = r[nameKey] ?? '';
+              const vs   = r[vsKey] ?? '';
+              let record = r[recordKey] ?? '';
+              if (!record) {
+                const w = r.Wins ?? r.W ?? '';
+                const l = r.Losses ?? r.L ?? '';
+                const t = r.Ties ?? r.T ?? '';
+                record = (t !== '' && !isNaN(t)) ? `${w}–${l}–${t}` : `${w}–${l}`;
+              }
+              return { name, vs, record };
+            }).filter(x => x.name && x.vs && x.record);
+    
+            // Sort and show a concise slice (change 8 to your preference)
+            normalized.sort((a,b) => a.name.localeCompare(b.name) || a.vs.localeCompare(b.vs));
+            const top = normalized.slice(0, 8);
+    
+            listEl.innerHTML = top.map(r =>
+              `<li>${esc(r.name)} — vs ${esc(r.vs)} • ${esc(r.record)}</li>`
+            ).join('');
           })
           .catch(err => {
-            console.error("UserInfo fetch error:", err);
-            listEl.innerHTML = `<li class="text-red-400">Couldn’t load User vs User data.</li>`;
+            console.error("HTH fetch error:", err);
+            listEl.innerHTML = `<li class="text-red-400">Couldn’t load H2H data.</li>`;
           });
       })();
     </script>
+    
     
   </body>
 </html>
