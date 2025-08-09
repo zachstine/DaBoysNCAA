@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User vs User</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <header class="bg-gray-800 p-6 shadow-md">
+    <h1 class="text-3xl font-bold text-center">User vs User</h1>
+  </header>
+
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
+    <a href="index.html" class="inline-block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">← Back to Home</a>
+
+    <!-- Filters -->
+    <section class="bg-gray-800 rounded-2xl p-6 shadow-md">
+      <h2 class="text-xl font-bold mb-4 border-b border-gray-600 pb-2">Filters</h2>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label class="block text-sm mb-1" for="yearSel">Year</label>
+          <select id="yearSel" class="w-full bg-gray-900 border border-gray-700 rounded p-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1" for="homeSel">Home</label>
+          <select id="homeSel" class="w-full bg-gray-900 border border-gray-700 rounded p-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1" for="awaySel">Away</label>
+          <select id="awaySel" class="w-full bg-gray-900 border border-gray-700 rounded p-2"></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="bg-gray-800 rounded-2xl p-6 shadow-md">
+      <h2 class="text-xl font-bold mb-4 border-b border-gray-600 pb-2">Matchups</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left table-auto border border-gray-600">
+          <thead class="bg-gray-700">
+            <tr>
+              <th class="p-2">Year</th>
+              <th class="p-2">Home</th>
+              <th class="p-2">Away</th>
+              <th class="p-2">Winner</th>
+              <th class="p-2">Score</th>
+            </tr>
+          </thead>
+          <tbody id="uvuBody" class="text-gray-100"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-800 p-4 text-center text-sm text-gray-400 mt-10">
+    EA CFB 25 Dynasty League
+  </footer>
+
+  <script>
+    const SHEET_ID = "1YelSwe2frFL_FvB3ul8bmZrWCYyULFCZqbfx6oO_Fr4"; // <-- set to the correct league’s sheet ID
+    const TAB = "UserInfo";
+
+    const yearSel = document.getElementById("yearSel");
+    const homeSel = document.getElementById("homeSel");
+    const awaySel = document.getElementById("awaySel");
+    const bodyEl  = document.getElementById("uvuBody");
+
+    let ALL = [];
+    let YEARS = [], HOMES = [], AWAYS = [];
+
+    fetch(`https://opensheet.elk.sh/1rKNSb7t1_kLLpDn3lJEuXrzN3P1uMfAVqHQFG4hnGYM/UserInfo`)
+      .then(r => r.json())
+      .then(rows => {
+        ALL = rows;
+
+        YEARS = ["All", ...Array.from(new Set(rows.map(r => r.Year).filter(Boolean))).sort().reverse()];
+        HOMES = ["All", ...Array.from(new Set(rows.map(r => r.Home).filter(Boolean))).sort()];
+        AWAYS = ["All", ...Array.from(new Set(rows.map(r => r.Away).filter(Boolean))).sort()];
+
+        fillSelect(yearSel, YEARS);
+        fillSelect(homeSel, HOMES);
+        fillSelect(awaySel, AWAYS);
+
+        // Default: most recent year if exists, else "All"
+        if (YEARS.length > 1) yearSel.value = YEARS[1];
+        render();
+      })
+      .catch(err => {
+        console.error("UserInfo fetch error:", err);
+        bodyEl.innerHTML = `<tr><td colspan="5" class="p-2 text-red-400">Couldn’t load data.</td></tr>`;
+      });
+
+    function fillSelect(sel, arr){
+      sel.innerHTML = arr.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+    [yearSel, homeSel, awaySel].forEach(el => el.addEventListener("change", render));
+
+    function render(){
+      const y = yearSel.value;
+      const h = homeSel.value;
+      const a = awaySel.value;
+
+      let rows = ALL.slice();
+      if (y !== "All") rows = rows.filter(r => r.Year === y);
+      if (h !== "All") rows = rows.filter(r => r.Home === h);
+      if (a !== "All") rows = rows.filter(r => r.Away === a);
+
+      // Sort by Year desc then Home vs Away alpha for consistency
+      rows.sort((r1, r2) => (r2.Year||"").localeCompare(r1.Year||"") || (r1.Home||"").localeCompare(r2.Home||"") || (r1.Away||"").localeCompare(r2.Away||""));
+
+      bodyEl.innerHTML = rows.length
+        ? rows.map(r => `
+            <tr class="border-t border-gray-600">
+              <td class="p-2">${escapeHtml(r.Year||"")}</td>
+              <td class="p-2">${escapeHtml(r.Home||"")}</td>
+              <td class="p-2">${escapeHtml(r.Away||"")}</td>
+              <td class="p-2">${escapeHtml(r.Winner||"")}</td>
+              <td class="p-2">${escapeHtml(r.Score||"")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="5" class="p-2 text-gray-400">No matchups found.</td></tr>`;
+    }
+  </script>
+</body>
+</html>

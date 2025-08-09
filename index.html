@@ -106,6 +106,12 @@
             <ol id="recruitingList" class="list-decimal pl-4 space-y-1 relative z-20"></ol>
           </div>
         </div>
+        <!-- User vs User -->
+          <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
+            <a href="uservsuser.html" class="absolute inset-0 z-10" aria-label="Go to User vs User page"></a>
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-600 pb-2">User vs User</h2>
+            <ul id="uvuList" class="space-y-1 relative z-20 text-sm"></ul>
+          </div>
       </div>
     </main>
     
@@ -115,5 +121,36 @@
     <footer class="bg-gray-800 p-4 text-center text-sm text-gray-400 mt-10">
       Built for the EA CFB 26 Dynasty League by Mr. Stine
     </footer>
+    <script>
+      (function(){
+        const SHEET_ID = "1YelSwe2frFL_FvB3ul8bmZrWCYyULFCZqbfx6oO_Fr4"; // <-- set to this league's Sheet ID
+        const TAB = "UserInfo"; // your tab name
+        const listEl = document.getElementById("uvuList");
+    
+        if (!listEl) return;
+    
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(TAB)}`)
+          .then(r => r.json())
+          .then(rows => {
+            // Sort by Year (desc) if Year is numeric-like, then take latest 6
+            const sorted = rows.slice().sort((a,b) => (b.Year||"").localeCompare(a.Year||"")).slice(0,6);
+            if (sorted.length === 0) {
+              listEl.innerHTML = `<li class="text-gray-400">No matchups yet.</li>`;
+              return;
+            }
+            listEl.innerHTML = "";
+            sorted.forEach(r => {
+              const li = document.createElement("li");
+              li.textContent = `${r.Year} — ${r.Home} vs ${r.Away} • ${r.Winner} ${r.Score ? '('+r.Score+')' : ''}`;
+              listEl.appendChild(li);
+            });
+          })
+          .catch(err => {
+            console.error("UserInfo fetch error:", err);
+            listEl.innerHTML = `<li class="text-red-400">Couldn’t load User vs User data.</li>`;
+          });
+      })();
+    </script>
+    
   </body>
 </html>
