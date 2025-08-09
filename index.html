@@ -51,9 +51,9 @@
       .then(data => {
         const target = document.getElementById("recruitingList");
         data.forEach(row => {
-          const li = document.createElement("li");
-          li.textContent = `${row.Rank}. ${row.Team} - 5 Stars: ${row["5 Stars"]}`;
-          target.appendChild(li);
+          const div = document.createElement("div");
+          div.textContent = `Rank: ${row.Rank} — ${row.Team} — 5 Stars: ${row["5 Stars"]}`;
+          target.appendChild(div);
         });
       });
   </script>
