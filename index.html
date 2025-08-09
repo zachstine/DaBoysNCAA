@@ -68,18 +68,17 @@
     <main class="p-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-5xl mx-auto mt-8">
         <!-- Previous Champions -->
-        <div>
+        <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
           <a href="champs.html" class="absolute inset-0 z-10" aria-label="Go to Previous Champions page"></a>
           <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
             <a href="champs.html" class="absolute inset-0 z-10" aria-label="Go to Previous Champions page"></a>
             <h2 class="text-xl font-bold mb-4 border-b border-gray-600 pb-2">Previous Champions</h2>
             <ul id="championsList" class="space-y-1 relative z-20"></ul>
           </div>
-        </div>  
-        
+        </div>
     
         <!-- Previous Heisman Winners -->
-        <div>
+        <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
           <a href="heisman.html" class="absolute inset-0 z-10" aria-label="Go to Heisman Winners page"></a>
           <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
             <a href="heisman.html" class="absolute inset-0 z-10" aria-label="Go to Heisman Winners page"></a>
@@ -89,7 +88,7 @@
         </div>
     
         <!-- All-Time Records -->
-        <div>
+        <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
           <a href="coaches.html" class="absolute inset-0 z-10" aria-label="Go to All-Time Records page"></a>
           <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
             <a href="coaches.html" class="absolute inset-0 z-10" aria-label="Go to All-Time Records page"></a>
@@ -99,7 +98,7 @@
         </div>
     
         <!-- Current Recruiting Rank -->
-        <div>
+        <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
           <a href="recruiting.html" class="absolute inset-0 z-10" aria-label="Go to Recruiting page"></a>
           <div class="relative bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition group">
             <a href="recruiting.html" class="absolute inset-0 z-10" aria-label="Go to Recruiting Rankings page"></a>
@@ -163,7 +162,7 @@
             const top = normalized.slice(0, 8);
     
             listEl.innerHTML = top.map(r =>
-              `<li>${esc(r.name)} vs ${esc(r.vs)} • ${esc(r.record)}</li>`
+              `<li>${esc(r.name)} — vs ${esc(r.vs)} • ${esc(r.record)}</li>`
             ).join('');
           })
           .catch(err => {
