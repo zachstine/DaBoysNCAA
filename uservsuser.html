@@ -87,77 +87,114 @@
     let YEARS = [], HOMES = [], AWAYS = [];
 
     fetch(`https://opensheet.elk.sh/1rKNSb7t1_kLLpDn3lJEuXrzN3P1uMfAVqHQFG4hnGYM/UserInfo`)
-    .then(r => r.json())
-    .then(rows => {
-      ALL = rows;
+      .then(r => r.json())
+      .then(rows => {
+        ALL = rows;
 
-      // (existing setup for filters, render(), etc.)
-      YEARS = ["All", ...Array.from(new Set(rows.map(r => r.Year).filter(Boolean))).sort().reverse()];
-      HOMES = ["All", ...Array.from(new Set(rows.map(r => r.Home).filter(Boolean))).sort()];
-      AWAYS = ["All", ...Array.from(new Set(rows.map(r => r.Away).filter(Boolean))).sort()];
-      fillSelect(yearSel, YEARS);
-      fillSelect(homeSel, HOMES);
-      fillSelect(awaySel, AWAYS);
-      if (YEARS.length > 1) yearSel.value = YEARS[1];
-      render();
+        YEARS = ["All", ...Array.from(new Set(rows.map(r => r.Year).filter(Boolean))).sort().reverse()];
+        HOMES = ["All", ...Array.from(new Set(rows.map(r => r.Home).filter(Boolean))).sort()];
+        AWAYS = ["All", ...Array.from(new Set(rows.map(r => r.Away).filter(Boolean))).sort()];
 
-      // NEW: build & render all-time head-to-head
-      renderH2H(rows);
-    })
-    .catch(err => {
-      console.error("UserInfo fetch error:", err);
-      bodyEl.innerHTML = `<tr><td colspan="5" class="p-2 text-red-400">Couldn’t load data.</td></tr>`;
-      const h2h = document.getElementById("h2hBody");
-      if (h2h) h2h.innerHTML = `<tr><td colspan="3" class="p-2 text-red-400">Couldn’t load H2H data.</td></tr>`;
-    });
+        fillSelect(yearSel, YEARS);
+        fillSelect(homeSel, HOMES);
+        fillSelect(awaySel, AWAYS);
 
-  // --- NEW: All-time H2H helpers ---
-  function renderH2H(rows){
+        // Default: most recent year if exists, else "All"
+        if (YEARS.length > 1) yearSel.value = YEARS[1];
+        render();
+      })
+      .catch(err => {
+        console.error("UserInfo fetch error:", err);
+        bodyEl.innerHTML = `<tr><td colspan="5" class="p-2 text-red-400">Couldn’t load data.</td></tr>`;
+      });
+
+    function fillSelect(sel, arr){
+      sel.innerHTML = arr.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+    [yearSel, homeSel, awaySel].forEach(el => el.addEventListener("change", render));
+
+    function render(){
+      const y = yearSel.value;
+      const h = homeSel.value;
+      const a = awaySel.value;
+
+      let rows = ALL.slice();
+      if (y !== "All") rows = rows.filter(r => r.Year === y);
+      if (h !== "All") rows = rows.filter(r => r.Home === h);
+      if (a !== "All") rows = rows.filter(r => r.Away === a);
+
+      // Sort by Year desc then Home vs Away alpha for consistency
+      rows.sort((r1, r2) => (r2.Year||"").localeCompare(r1.Year||"") || (r1.Home||"").localeCompare(r2.Home||"") || (r1.Away||"").localeCompare(r2.Away||""));
+
+      bodyEl.innerHTML = rows.length
+        ? rows.map(r => `
+            <tr class="border-t border-gray-600">
+              <td class="p-2">${escapeHtml(r.Year||"")}</td>
+              <td class="p-2">${escapeHtml(r.Home||"")}</td>
+              <td class="p-2">${escapeHtml(r.Away||"")}</td>
+              <td class="p-2">${escapeHtml(r.Winner||"")}</td>
+              <td class="p-2">${escapeHtml(r.Score||"")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="5" class="p-2 text-gray-400">No matchups found.</td></tr>`;
+    }
+    // ===== All-Time H2H from HTH tab =====
+  (function(){
+    const SHEET_ID = "1YelSwe2frFL_FvB3ul8bmZrWCYyULFCZqbfx6oO_Fr4"; // <-- set to THIS league’s sheet ID
+    const TAB = "HTH";
     const h2hBody = document.getElementById("h2hBody");
     if (!h2hBody) return;
 
-    // Collect unique user names from Home/Away
-    const users = Array.from(new Set(
-      rows.flatMap(r => [r.Home, r.Away]).filter(Boolean)
-    )).sort();
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
-    // Precompute wins A over B
-    const wins = new Map(); // key "A||B" -> count
-    for (const r of rows) {
-      const home = r.Home?.trim(); 
-      const away = r.Away?.trim();
-      const winner = r.Winner?.trim();
-      if (!home || !away || !winner) continue;
-      // winner must be one of the participants
-      if (winner !== home && winner !== away) continue;
-      const loser = (winner === home) ? away : home;
-      const key = `${winner}||${loser}`;
-      wins.set(key, (wins.get(key) || 0) + 1);
-    }
+    fetch(`https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(TAB)}`)
+      .then(r => r.json())
+      .then(rows => {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          h2hBody.innerHTML = `<tr><td colspan="3" class="p-2 text-gray-400">No H2H data yet.</td></tr>`;
+          return;
+        }
 
-    // Build directional rows: for each A vs B, record = winsA-winsB
-    let rowsHtml = "";
-    for (const a of users) {
-      for (const b of users) {
-        if (a === b) continue;
-        const wA = wins.get(`${a}||${b}`) || 0;
-        const wB = wins.get(`${b}||${a}`) || 0;
-        // Hide pairs with zero games if you want:
-        if (wA + wB === 0) continue;
-        rowsHtml += `
+        // Detect column names
+        const nameKey   = ['Name','Coach','User'].find(k => k in rows[0]) || 'Name';
+        const vsKey     = ['All-time versus','Opponent','Versus','All time versus'].find(k => k in rows[0]) || 'Opponent';
+        const recordKey = ['Record'].find(k => k in rows[0]);
+
+        // Normalize rows and compute record if needed
+        const norm = rows.map(r => {
+          const name = r[nameKey] ?? '';
+          const vs   = r[vsKey] ?? '';
+          let record = '';
+          if (recordKey) {
+            record = r[recordKey] ?? '';
+          } else {
+            const w = r.Wins ?? r.W ?? '';
+            const l = r.Losses ?? r.L ?? '';
+            const t = (r.Ties ?? r.T ?? '') || '';
+            record = (t !== '' && !isNaN(t)) ? `${w}–${l}–${t}` : `${w}–${l}`;
+          }
+          return { name, vs, record };
+        });
+
+        // Sort: by Name, then Opponent
+        norm.sort((a,b) => a.name.localeCompare(b.name) || a.vs.localeCompare(b.vs));
+
+        h2hBody.innerHTML = norm.map(r => `
           <tr class="border-t border-gray-600">
-            <td class="p-2">${escapeHtml(a)}</td>
-            <td class="p-2">${escapeHtml(b)}</td>
-            <td class="p-2">${wA}&ndash;${wB}</td>
+            <td class="p-2">${esc(r.name)}</td>
+            <td class="p-2">${esc(r.vs)}</td>
+            <td class="p-2">${esc(r.record)}</td>
           </tr>
-        `;
-      }
-    }
-
-    h2hBody.innerHTML = rowsHtml || `<tr><td colspan="3" class="p-2 text-gray-400">No head-to-head games yet.</td></tr>`;
-  }
-
-  function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
-</script>
+        `).join('');
+      })
+      .catch(err => {
+        console.error("HTH fetch error:", err);
+        h2hBody.innerHTML = `<tr><td colspan="3" class="p-2 text-red-400">Couldn’t load H2H data.</td></tr>`;
+      });
+  })();
+  </script>
 </body>
 </html>
