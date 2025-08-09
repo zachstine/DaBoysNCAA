@@ -162,7 +162,7 @@
             const top = normalized.slice(0, 8);
     
             listEl.innerHTML = top.map(r =>
-              `<li>${esc(r.name)} — vs ${esc(r.vs)} • ${esc(r.record)}</li>`
+              `<li>${esc(r.name)} vs ${esc(r.vs)} • ${esc(r.record)}</li>`
             ).join('');
           })
           .catch(err => {
